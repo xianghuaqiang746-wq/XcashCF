@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>XCASH Protocol</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#135bec",
+              "background-light": "#f6f6f8",
+              "background-dark": "#0a0d14",
+              "accent-cyan": "#00f2ff",
+              "accent-purple": "#bc13fe",
+              "glass-border": "rgba(146, 164, 201, 0.15)",
+            },
+            fontFamily: {
+              "display": ["Space Grotesk", "sans-serif"],
+              "sans": ["Noto Sans TC", "Space Grotesk", "sans-serif"]
+            },
+            animation: {
+              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'spin-slow': 'spin 20s linear infinite',
+            }
+          }
+        }
+      }
+    </script>
+
+    <!-- React & Libraries CDNs -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-router-dom@6.22.3/umd/react-router-dom.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/recharts@2.12.3/umd/Recharts.min.js"></script>
+    <!-- Lucide Icons UMD -->
+    <script crossorigin src="https://unpkg.com/lucide-react@0.292.0/dist/umd/lucide-react.min.js"></script>
+    <!-- Babel for JSX compilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+      body {
+        font-family: 'Space Grotesk', sans-serif;
+        background-color: #0a0d14;
+        color: white;
+      }
+      .glass-card {
+        backdrop-filter: blur(12px);
+        background: rgba(35, 47, 72, 0.4);
+        border: 1px solid rgba(146, 164, 201, 0.1);
+      }
+      .glass-panel {
+        background: rgba(25, 34, 51, 0.4);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .gradient-mesh {
+        background: radial-gradient(circle at 20% 30%, rgba(188, 19, 254, 0.1) 0%, transparent 40%),
+                    radial-gradient(circle at 80% 70%, rgba(0, 242, 255, 0.1) 0%, transparent 40%);
+      }
+      .hex-grid {
+        clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+      }
+      /* Hide scrollbar for clean UI */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #0a0d14; 
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #232f48; 
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #135bec; 
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.12.0",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "recharts": "https://esm.sh/recharts@^3.6.0"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+
+    <script type="text/babel" data-presets="typescript,react">
+      // 1. Library Destructuring
+      const { useState, useEffect } = React;
+      const { HashRouter, Routes, Route, Link, Outlet, useLocation, useNavigate } = ReactRouterDOM;
+      const { 
+        Menu, X, Globe, ChevronDown, Share2, MessageSquare, Terminal, 
+        Rocket, ShieldCheck, Cpu, Globe2, Search, Plus, Minus, ArrowRight, 
+        UserPlus, Database, Server, Shield, Cloud, Send, Mail, LayoutGrid, 
+        Wallet, Settings, ArrowLeft, Bell, Layers, TrendingUp, Sparkles, 
+        Lock, CircleDollarSign, Activity, DollarSign, RefreshCcw, 
+        PieChart: IconPieChart 
+      } = lucideReact;
+      const { PieChart: RePieChart, Pie, Cell, ResponsiveContainer, Tooltip: ReTooltip } = Recharts;
+
+      // 2. Icons Components
+      const Logo = () => (
+        <svg width="100%" height="100%" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z" fill="currentColor"></path>
+        </svg>
+      );
+
+      const HexagonGrid = () => (
+        <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-30" viewBox="0 0 1000 600">
+          <defs>
+            <pattern id="hexagons" width="50" height="43.4" patternUnits="userSpaceOnUse" patternTransform="scale(2)">
+              <path d="M25 0 L50 14.4 L50 43.3 L25 57.7 L0 43.3 L0 14.4 Z" fill="none" stroke="rgba(19, 91, 236, 0.2)" strokeWidth="1"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#hexagons)"/>
+        </svg>
+      );
+
+      // 3. Layout Component
+      const Layout = () => {
+        const location = useLocation();
+        const navigate = useNavigate();
+        const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+        const navLinks = [
+          { name: '首頁', path: '/' },
+          { name: '治理', path: '/' }, // Placeholder
+          { name: '節點', path: '/nodes' },
+          { name: '代幣經濟', path: '/tokenomics' },
+        ];
+
+        return (
+          <div className="flex flex-col min-h-screen bg-background-dark text-white overflow-x-hidden">
+            <header className="fixed top-0 left-0 w-full z-50 px-4 md:px-6 py-4">
+              <div className="max-w-7xl mx-auto glass-panel rounded-xl px-6 py-3 flex items-center justify-between border border-white/5 shadow-2xl shadow-black/20">
+                <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                  <div className="size-8 text-primary">
+                    <Logo />
+                  </div>
+                  <h2 className="text-white text-xl font-bold tracking-tight">XCASH</h2>
+                </Link>
+
+                <nav className="hidden lg:flex items-center gap-8">
+                  {navLinks.map((link) => (
+                    <Link
+                      key={link.name}
+                      to={link.path}
+                      className={`text-sm font-medium transition-colors ${
+                        location.pathname === link.path
+                          ? 'text-primary'
+                          : 'text-white/70 hover:text-white'
+                      }`}
+                    >
+                      {link.name}
+                    </Link>
+                  ))}
+                </nav>
+
+                <div className="hidden lg:flex items-center gap-4">
+                  <button className="flex items-center gap-2 border border-primary/40 bg-primary/10 px-3 py-1.5 rounded-lg text-xs font-bold text-primary transition-all hover:bg-primary/20">
+                    <Globe size={14} />
+                    <span>EN</span>
+                    <ChevronDown size={14} />
+                  </button>
+                  <button 
+                    onClick={() => navigate('/staking')}
+                    className="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-lg text-sm font-bold transition-all shadow-lg shadow-primary/20"
+                  >
+                    連接錢包
+                  </button>
+                </div>
+
+                <button 
+                  className="lg:hidden text-white/80"
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                >
+                  {isMenuOpen ? <X /> : <Menu />}
+                </button>
+              </div>
+            </header>
+
+            {isMenuOpen && (
+              <div className="fixed inset-0 z-40 bg-background-dark/95 backdrop-blur-xl flex flex-col items-center justify-center space-y-8 lg:hidden">
+                {navLinks.map((link) => (
+                  <Link
+                    key={link.name}
+                    to={link.path}
+                    onClick={() => setIsMenuOpen(false)}
+                    className="text-2xl font-bold text-white hover:text-primary transition-colors"
+                  >
+                    {link.name}
+                  </Link>
+                ))}
+                <button 
+                   onClick={() => {
+                      navigate('/staking');
+                      setIsMenuOpen(false);
+                   }}
+                   className="bg-primary px-8 py-3 rounded-xl text-lg font-bold shadow-lg shadow-primary/30"
+                >
+                  連接錢包
+                </button>
+              </div>
+            )}
+
+            <main className="flex-1 pt-24">
+              <Outlet />
+            </main>
+
+            <footer className="border-t border-white/5 bg-background-dark/50 backdrop-blur-md mt-auto">
+              <div className="max-w-7xl mx-auto px-6 py-12 flex flex-col md:flex-row justify-between items-center gap-8">
+                <div className="flex items-center gap-3">
+                  <div className="size-6 text-slate-500">
+                     <Logo />
+                  </div>
+                  <h2 className="text-xl font-bold text-slate-500">XCASH</h2>
+                </div>
+                <div className="flex gap-10 flex-wrap justify-center">
+                  <a href="#" className="text-slate-500 hover:text-white transition-colors text-sm">文檔</a>
+                  <a href="#" className="text-slate-500 hover:text-white transition-colors text-sm">瀏覽器</a>
+                  <a href="#" className="text-slate-500 hover:text-white transition-colors text-sm">狀態</a>
+                  <a href="#" className="text-slate-500 hover:text-white transition-colors text-sm">聯繫我們</a>
+                </div>
+                <div className="flex gap-6">
+                   <Share2 className="text-slate-600 hover:text-white transition-colors cursor-pointer" size={20} />
+                   <MessageSquare className="text-slate-600 hover:text-white transition-colors cursor-pointer" size={20} />
+                   <Terminal className="text-slate-600 hover:text-white transition-colors cursor-pointer" size={20} />
+                </div>
+                <p className="text-slate-600 text-sm md:w-full md:text-center lg:w-auto mt-4 lg:mt-0">© 2026 XCASH Network.</p>
+              </div>
+            </footer>
+          </div>
+        );
+      };
+
+      // 4. Page Components
+
+      // Home.tsx
+      const Home = () => {
+        const StatCard = ({ label, value, unit, color, icon }) => (
+          <div className="glass-card p-8 rounded-xl flex flex-col gap-2 relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+            <div className={`absolute top-0 right-0 w-24 h-24 bg-${color}/10 -mr-8 -mt-8 rounded-full blur-2xl`}></div>
+            <div className="flex items-center justify-between">
+              <p className="text-[#92a4c9] text-sm font-bold tracking-widest uppercase">{label}</p>
+              <div className={`text-${color} opacity-50`}>{icon}</div>
+            </div>
+            <p className="text-white text-4xl font-black leading-tight tabular-nums mt-2">
+              {value} <span className={`text-${color} text-2xl italic`}>{unit}</span>
+            </p>
+          </div>
+        );
+
+        const FeatureRow = ({ icon, title, desc, bgColor }) => (
+          <div className="flex gap-4 items-start p-4 rounded-xl hover:bg-white/5 transition-colors border border-transparent hover:border-white/5 group">
+            <div className={`${bgColor} p-3 rounded-lg group-hover:scale-110 transition-transform`}>
+              {icon}
+            </div>
+            <div>
+              <h3 className="text-white font-bold text-lg">{title}</h3>
+              <p className="text-[#92a4c9] text-sm mt-1">{desc}</p>
+            </div>
+          </div>
+        );
+
+        return (
+          <div className="relative">
+            <section className="relative min-h-[90vh] flex flex-col items-center justify-center px-4 overflow-hidden">
+              <div className="absolute inset-0 z-0 pointer-events-none">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-[1000px] opacity-20">
+                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/30 blur-[120px] rounded-full"></div>
+                </div>
+              </div>
+
+              <div className="relative z-10 text-center max-w-5xl mx-auto flex flex-col items-center">
+                <div className="mb-10 relative w-64 h-64 md:w-80 md:h-80 group">
+                  <div className="absolute inset-0 bg-primary/10 rounded-full animate-pulse blur-xl"></div>
+                  <div className="relative w-full h-full rounded-full border border-primary/30 flex items-center justify-center shadow-[0_0_50px_-10px_rgba(19,91,236,0.3)] bg-black/40 backdrop-blur-sm overflow-hidden">
+                     <img 
+                       src="https://lh3.googleusercontent.com/aida-public/AB6AXuDzp8LFoJsAbv3WfaphETcf01XMF7y1hAtBBrGiXqIjt49YXmS32LFdBs6p4KIZGdNNZvEBwDL3WXV_a2njzgO5drB1WHlOGgpcdRZi1Irv8rtXSdOILl4E3-v9-8CiJAr1rMVMLrXeojo1c639b2x-tcZ_ZjTZPI4cIM_j-6s9ImZkilI7LPDAa6z9RMnCZkwROd_LnSfxrTV0kELi0_kCvFv65Q6pVEgaVQbKV7k2mmW862dB7VTgpHIAZjR57OqJkKiJJY3oMnU" 
+                       alt="Holographic Earth"
+                       className="w-full h-full object-contain opacity-90 brightness-150 scale-110"
+                     />
+                     <div className="absolute inset-0 bg-gradient-to-t from-background-dark/80 via-transparent to-transparent"></div>
+                  </div>
+                  <div className="absolute top-0 left-0 w-full h-full animate-spin-slow pointer-events-none">
+                    <div className="absolute -top-1 left-1/2 size-2 bg-accent-cyan rounded-full shadow-[0_0_15px_#00f2ff]"></div>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <h1 className="text-white text-4xl md:text-6xl lg:text-7xl font-black leading-tight tracking-tight uppercase italic">
+                    XCASH: <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent-cyan drop-shadow-[0_0_10px_rgba(0,242,255,0.3)]">全球首個基於世界模型的隱私層</span>
+                  </h1>
+                  <p className="text-[#92a4c9] text-lg md:text-2xl font-medium leading-relaxed max-w-3xl mx-auto">
+                    通過對去中心化神經網絡實現全球數據分析。為 AI 時代打造安全、隱私且具備超大規模擴展能力的底層設施。
+                  </p>
+                  <div className="flex flex-wrap gap-4 justify-center pt-10">
+                    <Link to="/nodes/apply" className="flex items-center justify-center rounded-lg h-14 px-12 bg-primary text-white transition-all hover:scale-105 shadow-[0_0_20px_rgba(19,91,236,0.4)] font-bold text-lg">
+                      啟動應用
+                    </Link>
+                    <Link to="/nodes" className="flex items-center justify-center rounded-lg h-14 px-12 border border-white/20 bg-white/5 text-white transition-all hover:bg-white/10 font-bold text-lg">
+                      探索網絡
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="py-10 border-y border-white/5 bg-background-dark/50 backdrop-blur-sm">
+              <div className="max-w-7xl mx-auto px-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <StatCard label="已處理全球數據" value="1.28" unit="PB" color="primary" icon={<Globe2 />} />
+                  <StatCard label="活躍隱私節點" value="統計中..." unit="" color="accent-cyan" icon={<Cpu />} />
+                  <StatCard label="合作伙伴數量" value="10" unit="" color="accent-purple" icon={<ShieldCheck />} />
+                </div>
+              </div>
+            </section>
+
+            <section className="py-24 px-6 max-w-7xl mx-auto">
+              <div className="grid lg:grid-cols-2 gap-16 items-center">
+                <div className="space-y-8">
+                  <div className="space-y-4">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-widest">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                      </span>
+                      核心技術
+                    </div>
+                    <h2 className="text-white text-4xl md:text-5xl font-black leading-tight tracking-tight">
+                      為全球數據主權<br/>
+                      <span className="text-primary italic">量身構建</span>
+                    </h2>
+                    <p className="text-[#92a4c9] text-lg leading-relaxed">
+                      XCASH 利用先進的零知識原語和去中心化神經網絡，在不犧牲個人隱私的前提下處理行星級規模的數據。
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <FeatureRow 
+                      icon={<ShieldCheck className="text-primary" size={24} />}
+                      title="超大規模隱私保護"
+                      desc="經過 ZKP 優化的層級，每秒可處理數千筆私密交易。"
+                      bgColor="bg-primary/20"
+                    />
+                    <FeatureRow 
+                      icon={<Cpu className="text-accent-cyan" size={24} />}
+                      title="神經共識"
+                      desc="通過分布在 1.4 萬多個節點上的去中心化 AI 驗證網絡健康與數據完整性。"
+                      bgColor="bg-accent-cyan/20"
+                    />
+                  </div>
+                </div>
+                
+                <div className="relative">
+                   <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full"></div>
+                   <div className="relative glass-card aspect-square rounded-3xl p-4 border border-white/10 flex flex-col justify-center items-center overflow-hidden">
+                      <img 
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuD1yMqw8WWXhZife7IIkFXGYPwIEt1_yCj5m7C8AR_Sdy75lIwNvPhb8hK1k192rc4Hw3mNr14-5M67nKeb8yQHsPU2i5SNFYsTaIcAa89UtvNBMc4c6AyTdruy95pw9Qm_cHEx8uPQTt3XNaJZiVi-QiwlwoG6Pc1nM5MRaeNauCWrnSyHNt75bRuxv72QSIgizfUvLWbDfzh6vD_MjlTzUaAkf4dLUzuOP9hny3mw_FES7iwPSDjJc5mGtJLRLIknYm6Z_jP_pl0" 
+                        alt="Neural Network" 
+                        className="w-full h-full object-cover rounded-2xl opacity-60 mix-blend-screen"
+                      />
+                   </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="py-24 bg-background-dark relative overflow-hidden">
+               <div className="absolute inset-0 opacity-20 pointer-events-none">
+                  <div className="absolute right-0 bottom-0 w-[500px] h-[500px] bg-accent-purple/20 blur-[150px] rounded-full"></div>
+               </div>
+              <div className="max-w-4xl mx-auto px-6 relative z-10">
+                <div className="text-center mb-16">
+                  <h2 className="text-white text-4xl font-black italic">發展路線圖</h2>
+                </div>
+                
+                <div className="grid grid-cols-[40px_1fr] gap-x-6">
+                  {/* Stage 1 */}
+                  <div className="flex flex-col items-center gap-1 pt-3">
+                    <div className="size-10 bg-primary/20 rounded-full flex items-center justify-center text-primary shadow-[0_0_15px_rgba(19,91,236,0.5)]">
+                      <Rocket size={20} />
+                    </div>
+                    <div className="w-[2px] bg-gradient-to-b from-primary/50 to-white/10 h-24"></div>
+                  </div>
+                  <div className="flex flex-col py-3 mb-6">
+                    <p className="text-white text-xl font-bold italic leading-none">第一階段：啟動跨鏈隱私挖礦</p>
+                    <p className="text-[#92a4c9] text-base leading-relaxed mt-3">建立跨鏈互操作性協議，正式開啟隱私挖掘獎勵與算力網絡對接。</p>
+                  </div>
+
+                  {/* Stage 2 */}
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="size-10 bg-accent-cyan/20 rounded-full flex items-center justify-center text-accent-cyan shadow-[0_0_15px_rgba(0,242,255,0.5)]">
+                      <Globe2 size={20} />
+                    </div>
+                    <div className="w-[2px] bg-white/10 h-24"></div>
+                  </div>
+                  <div className="flex flex-col py-3 mb-6">
+                    <p className="text-white text-xl font-bold italic leading-none">第二階段：全球節點招募與協議發佈</p>
+                    <p className="text-[#92a4c9] text-base leading-relaxed mt-3">向全球擴張驗證節點生態，發佈底層隱私計算協議 V2.0 提升網絡容量。</p>
+                  </div>
+
+                   {/* Stage 3 */}
+                   <div className="flex flex-col items-center gap-1">
+                    <div className="size-10 bg-accent-purple/20 rounded-full flex items-center justify-center text-accent-purple shadow-[0_0_15px_rgba(188,19,254,0.5)]">
+                      <ShieldCheck size={20} />
+                    </div>
+                  </div>
+                  <div className="flex flex-col py-3">
+                    <p className="text-white text-xl font-bold italic leading-none">第三階段：開啟社區質押收益</p>
+                    <p className="text-[#92a4c9] text-base leading-relaxed mt-3">激活社區治理模塊，開放代幣質押池，實現去中心化治理與經濟激勵正循環。</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        );
+      };
+
+      // NodeNetwork.tsx
+      const applicants = [
+        { id: 'xc_req_9281...f2e1', region: 'Hong Kong, HK', time: '2026-01-05 14:30', status: 'pending' },
+        { id: 'xc_req_1104...7cbb', region: 'Singapore, SG', time: '2026-01-05 12:15', status: 'pending' },
+        { id: 'xc_req_4492...01aa', region: 'London, UK', time: '2026-01-05 11:45', status: 'pending' },
+        { id: 'xc_req_8821...3d9f', region: 'Tokyo, JP', time: '2026-01-05 09:20', status: 'pending' },
+      ];
+
+      const NodeNetwork = () => {
+        const navigate = useNavigate();
+        
+        const NetworkStatCard = ({ icon, label, value, subValue, subText, progressColor, isHealthBar, subValueColor = "text-slate-500" }) => (
+          <div className="glass-card p-8 rounded-xl flex flex-col gap-3 relative overflow-hidden group border-b-2 border-transparent hover:border-primary/30 transition-all">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              {icon}
+            </div>
+            <p className="text-slate-400 text-sm font-semibold uppercase tracking-wider">{label}</p>
+            <div className="flex items-baseline gap-3">
+              <span className="text-4xl font-black text-white whitespace-nowrap">{value}</span>
+              {subValue && <span className={`${subValueColor} text-sm font-bold`}>{subValue}</span>}
+            </div>
+            {subText && <p className="text-slate-500 text-xs tracking-tight mt-4">{subText}</p>}
+            {progressColor && (
+              <div className="w-full bg-slate-800 h-1.5 rounded-full mt-4">
+                <div className={`${progressColor} h-full w-[45%] rounded-full animate-pulse shadow-[0_0_8px_rgba(19,91,236,0.6)]`}></div>
+              </div>
+            )}
+            {isHealthBar && (
+              <div className="flex gap-1 mt-4">
+                {[1,2,3,4,5].map(i => <div key={i} className="h-8 flex-1 bg-primary/40 rounded-sm"></div>)}
+                <div className="h-8 flex-1 bg-primary/10 rounded-sm"></div>
+              </div>
+            )}
+          </div>
+        );
+
+        const HardwareCard = ({ icon, title, desc }) => (
+          <div className="glass-card p-6 rounded-xl space-y-4 hover:bg-white/5 transition-colors">
+            <div className="size-10 bg-primary/20 text-primary flex items-center justify-center rounded-lg">
+              {icon}
+            </div>
+            <h3 className="font-bold text-white text-lg">{title}</h3>
+            <p className="text-slate-400 text-sm leading-relaxed">{desc}</p>
+          </div>
+        );
+
+        return (
+          <div className="max-w-7xl mx-auto px-6 py-10 space-y-12">
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 text-primary">
+                  <Share2 size={16} />
+                  <span className="text-xs font-bold uppercase tracking-widest">實時網絡監控</span>
+                </div>
+                <span className="bg-primary/10 text-primary text-[10px] px-2 py-0.5 rounded border border-primary/20 font-bold uppercase tracking-wider">
+                  基於門羅算法 (Based on Monero Algorithm)
+                </span>
+              </div>
+              <h2 className="text-5xl font-black tracking-tight text-white max-w-3xl">全球節點基礎設施</h2>
+              <p className="text-slate-400 text-lg max-w-2xl">
+                基於 2026 世界模型的隱私與數據分析網絡。驅動全球神經網絡計算未來的去中心化節點基礎設施。
+              </p>
+            </div>
+
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-cyan-500/20 rounded-xl blur opacity-25 group-hover:opacity-40 transition duration-1000"></div>
+              <div className="relative glass-card rounded-xl overflow-hidden min-h-[550px] flex flex-col border border-white/10">
+                <div className="absolute top-6 left-6 z-10 space-y-4">
+                  <div className="glass-card p-4 rounded-lg flex items-center gap-4 border border-primary/20 bg-black/60 backdrop-blur-md">
+                    <div className="flex items-center gap-2">
+                      <span className="size-2 bg-primary rounded-full animate-ping"></span>
+                      <span className="text-xs font-medium text-white tracking-wide">統計中... 活動節點</span>
+                    </div>
+                    <div className="h-4 w-px bg-slate-700"></div>
+                    <div className="flex items-center gap-2">
+                      <span className="size-2 bg-cyan-400 rounded-full"></span>
+                      <span className="text-xs font-medium text-white">42 核心區域</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="absolute top-6 right-6 z-10 flex flex-col gap-2">
+                  <button className="glass-panel size-10 flex items-center justify-center rounded-lg hover:bg-primary hover:text-white transition-colors text-white/70">
+                    <Plus size={20} />
+                  </button>
+                  <button className="glass-panel size-10 flex items-center justify-center rounded-lg hover:bg-primary hover:text-white transition-colors text-white/70">
+                    <Minus size={20} />
+                  </button>
+                  <button className="glass-panel size-10 flex items-center justify-center rounded-lg hover:bg-primary hover:text-white transition-colors mt-2 text-white/70">
+                    <Share2 size={20} />
+                  </button>
+                </div>
+
+                <div className="flex-1 w-full bg-[#0a0e17] relative flex items-center justify-center overflow-hidden">
+                   <img 
+                     className="w-full h-full object-cover opacity-30 grayscale-[0.5] scale-105" 
+                     src="https://lh3.googleusercontent.com/aida-public/AB6AXuBT0-OeyUTJQt6Vqv0IHCW9KdFmqGiDQwzcvBAdVS_oebSXzLJ8_oeUnOTT7IqZLfyEodTgIjbGxA5750tdH0xmkEWFAolmdQFxtP5m_9iQ62-rOXwnFirW7f8WyDDw13iDLuRyqwZjlzWZkfcpS9T2MttJcXSaxF45txFTuXE0Umvn5ALktKuW10teI4ObbQOxJga40gFMB3bTBQkaY_uusGuXrfHuxWTjQZRykH4cDCdHcsKypvt8wE0Dt-YPZAn2VtXV9TRpBlU" 
+                     alt="Global Network Map"
+                   />
+                   <div className="absolute inset-0 pointer-events-none">
+                      <div className="absolute top-[25%] left-[20%] w-32 h-32">
+                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-3 bg-primary rounded-full blur-[2px] animate-pulse"></div>
+                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-8 border border-primary/30 rounded-full animate-ping"></div>
+                      </div>
+                      <div className="absolute top-[22%] left-[48%] w-24 h-24">
+                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-3 bg-cyan-400 rounded-full blur-[2px]"></div>
+                      </div>
+                      <svg className="absolute inset-0 w-full h-full">
+                        <path d="M 200 150 Q 400 100 580 140" stroke="rgba(19, 91, 236, 0.3)" strokeWidth="1" fill="none" strokeDasharray="5,5" />
+                        <path d="M 600 150 Q 750 200 880 180" stroke="rgba(19, 91, 236, 0.3)" strokeWidth="1" fill="none" strokeDasharray="4,6" />
+                      </svg>
+                   </div>
+                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#0a0d14_95%)] pointer-events-none"></div>
+
+                   <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-full max-w-md px-6">
+                      <div className="glass-panel p-1.5 rounded-xl flex items-center shadow-2xl border border-primary/30 bg-black/40">
+                         <input 
+                            type="text" 
+                            placeholder="搜尋區域神經集群或節點..." 
+                            className="bg-transparent border-none focus:ring-0 text-white flex-1 px-4 py-2 text-sm placeholder-slate-400"
+                         />
+                         <button className="bg-primary text-white p-2 rounded-lg hover:bg-primary/80 transition-colors">
+                            <Search size={18} />
+                         </button>
+                      </div>
+                   </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <NetworkStatCard 
+                icon={<Share2 size={40} className="text-slate-500" />}
+                label="總節點數"
+                value="統計中..."
+                subValue="同步中"
+                progressColor="bg-primary"
+              />
+              <NetworkStatCard 
+                icon={<Server size={40} className="text-slate-500" />}
+                label="獎勵總量"
+                value="100M XCK"
+                subText="當前網絡累積獎勵池"
+              />
+              <NetworkStatCard 
+                icon={<Database size={40} className="text-slate-500" />}
+                label="網絡健康度"
+                value="99.9%"
+                subValue="穩定"
+                subValueColor="text-primary"
+                isHealthBar
+              />
+            </div>
+
+            <div className="space-y-8 pt-8">
+              <div className="flex flex-col md:flex-row md:items-end justify-between border-b border-white/10 pb-6 gap-6">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-3xl font-bold text-white">如何運行節點</h2>
+                    <span className="text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded border border-white/10 font-medium">基於門羅算法</span>
+                  </div>
+                  <p className="text-slate-400">
+                    加入全球神經網絡，通過保護 2026 世界模型數據安全賺取 XCK 獎勵。
+                  </p>
+                </div>
+                <button 
+                  onClick={() => navigate('/nodes/apply')}
+                  className="bg-primary hover:bg-primary/90 text-white px-8 py-4 rounded-lg font-bold transition-all flex items-center justify-center gap-2 group whitespace-nowrap shadow-lg shadow-primary/20"
+                >
+                  成為驗證者
+                  <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                 <HardwareCard icon={<Cpu />} title="CPU 算力" desc="建議 8 核處理器 @ 3.5GHz 或更高，用於處理海量數據分析。" />
+                 <HardwareCard icon={<Server />} title="32GB 記憶體" desc="推薦使用 ECC 記憶體以維持世界模型狀態的數據完整性。" />
+                 <HardwareCard icon={<Database />} title="1TB 硬碟" desc="需要高速存儲以支持快速區塊索引和鏈上數據存儲。" />
+                 <HardwareCard icon={<Shield />} title="隱私協議" desc="集成門羅技術棧，支持零知識證明與隱身地址，確保驗證過程匿名。" />
+              </div>
+            </div>
+
+            <div className="glass-card rounded-xl overflow-hidden border border-primary/10">
+              <div className="p-6 border-b border-white/5 flex justify-between items-center bg-slate-800/20">
+                <h3 className="font-bold text-white flex items-center gap-2">
+                  <UserPlus size={20} className="text-primary" />
+                  新節點申請列表
+                </h3>
+                <span className="text-xs text-slate-500 font-mono">實時同步中...</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="text-xs text-slate-500 uppercase tracking-widest bg-slate-800/10">
+                      <th className="px-6 py-4">申請人 ID</th>
+                      <th className="px-6 py-4">區域</th>
+                      <th className="px-6 py-4">申請時間</th>
+                      <th className="px-6 py-4">狀態</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-sm">
+                    {applicants.map((app) => (
+                      <tr key={app.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                        <td className="px-6 py-4 font-mono text-primary">{app.id}</td>
+                        <td className="px-6 py-4 text-slate-300">{app.region}</td>
+                        <td className="px-6 py-4 text-slate-400">{app.time}</td>
+                        <td className="px-6 py-4">
+                          <span className="px-2 py-1 rounded bg-yellow-500/10 text-yellow-400 text-xs font-bold">審核中</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="p-4 text-center bg-slate-800/10">
+                <button className="text-primary text-sm font-bold hover:underline">查看所有申請記錄</button>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      // NodeApply.tsx
+      const NodeApply = () => {
+        const [nodeType, setNodeType] = useState('hosted');
+        const [budget, setBudget] = useState(1000);
+
+        const StepIndicator = ({ number, active }) => (
+           <div className={`relative z-10 size-10 rounded-full flex items-center justify-center font-bold transition-all ${active ? 'bg-primary text-white shadow-[0_0_15px_rgba(19,91,236,0.5)]' : 'bg-slate-800 text-slate-500 border border-glass-border'}`}>
+              {number}
+           </div>
+        );
+
+        const SectionHeader = ({ number, title }) => (
+           <div className="flex items-center gap-3">
+              <span className="text-primary font-bold">{number}</span>
+              <h3 className="text-xl font-bold text-white">{title}</h3>
+           </div>
+        );
+
+        const RadioCard = ({ selected, onClick, icon, title, desc }) => (
+           <div 
+              onClick={onClick}
+              className={`p-6 rounded-xl border cursor-pointer transition-all ${selected ? 'border-primary bg-primary/10' : 'border-glass-border bg-slate-800/30 hover:border-primary/50'}`}
+           >
+              <div className="flex justify-between items-start mb-4">
+                 <div className={`text-${selected ? 'primary' : 'slate-500'}`}>{icon}</div>
+                 <div className={`size-5 rounded-full border-2 flex items-center justify-center ${selected ? 'border-primary' : 'border-slate-600'}`}>
+                    {selected && <div className="size-2.5 bg-primary rounded-full"></div>}
+                 </div>
+              </div>
+              <h4 className="text-lg font-bold text-white mb-2">{title}</h4>
+              <p className="text-slate-400 text-sm leading-relaxed">{desc}</p>
+           </div>
+        );
+
+        return (
+          <div className="max-w-4xl mx-auto px-6 py-12 w-full">
+            <div className="text-center mb-12">
+              <div className="inline-flex items-center gap-2 text-primary mb-4">
+                <Share2 size={16} />
+                <span className="text-xs font-bold uppercase tracking-widest">Node Application Wizard</span>
+              </div>
+              <h2 className="text-4xl md:text-5xl font-black tracking-tight text-white mb-4">加入 XCASH 節點網絡</h2>
+              <p className="text-slate-400 text-lg">官方將在審核後與您聯繫，共建 2026 全球去中心化基礎設施。</p>
+            </div>
+
+            <div className="flex items-center justify-between mb-12 max-w-2xl mx-auto relative">
+              <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-800 -translate-y-1/2 z-0"></div>
+              <StepIndicator number={1} active />
+              <StepIndicator number={2} />
+              <StepIndicator number={3} />
+            </div>
+
+            <div className="glass-card rounded-2xl p-8 md:p-12 space-y-10 relative overflow-hidden border border-primary/20 bg-[#101622]/80">
+              
+              <div className="space-y-6">
+                <SectionHeader number="01" title="選擇節點類型" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <RadioCard 
+                    selected={nodeType === 'hosted'} 
+                    onClick={() => setNodeType('hosted')}
+                    icon={<Cloud size={32} />}
+                    title="託管節點"
+                    desc="由 XCASH 官方認證服務商提供硬件維護，適合無技術背景的質押者。"
+                  />
+                   <RadioCard 
+                    selected={nodeType === 'self'} 
+                    onClick={() => setNodeType('self')}
+                    icon={<Terminal size={32} />}
+                    title="自主搭建節點"
+                    desc="完全掌控您的硬件設備與數據安全，需要具備 Linux 系統維護能力。"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-6 pt-10 border-t border-glass-border">
+                <div className="flex items-center justify-between">
+                  <SectionHeader number="02" title="預算規劃" />
+                  <span className="text-xs font-mono text-primary/80 bg-primary/10 px-3 py-1 rounded-full border border-primary/20">基本成本: 500 USDT/年</span>
+                </div>
+                <div className="space-y-8">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                     {['500 - 1k', '1k - 5k', '5k - 20k', '20k+'].map((range, i) => (
+                       <button key={i} className={`p-4 rounded-lg border transition-all text-sm font-bold ${i === 1 ? 'border-primary bg-primary/10 text-white' : 'border-glass-border bg-slate-800/30 text-slate-400 hover:border-primary hover:text-white'}`}>
+                          {range}
+                       </button>
+                     ))}
+                  </div>
+                  <div className="relative pt-2">
+                    <input 
+                      type="range" 
+                      min="500" 
+                      max="50000" 
+                      step="500" 
+                      value={budget}
+                      onChange={(e) => setBudget(Number(e.target.value))}
+                      className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-primary"
+                    />
+                    <div className="flex justify-between mt-2 text-[10px] text-slate-500 font-mono">
+                      <span>500 USDT</span>
+                      <span>50,000 USDT</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-6 pt-10 border-t border-glass-border">
+                 <SectionHeader number="03" title="聯繫方式" />
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                       <label className="text-sm text-slate-400">電子郵件 / Telegram</label>
+                       <div className="relative">
+                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+                          <input type="text" placeholder="@yourname or mail@example.com" className="w-full bg-slate-800/50 border-glass-border rounded-xl pl-12 pr-4 py-4 text-white focus:ring-1 focus:ring-primary focus:border-primary transition-all border-white/10" />
+                       </div>
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-sm text-slate-400">所在區域 (可選)</label>
+                       <div className="relative">
+                          <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+                          <select className="w-full bg-slate-800/50 border-glass-border rounded-xl pl-12 pr-4 py-4 text-white focus:ring-1 focus:ring-primary focus:border-primary transition-all appearance-none border-white/10">
+                             <option>亞太地區</option>
+                             <option>歐洲</option>
+                             <option>北美</option>
+                             <option>其他區域</option>
+                          </select>
+                       </div>
+                    </div>
+                 </div>
+              </div>
+
+              <div className="pt-6">
+                 <button className="w-full bg-primary hover:bg-primary/90 text-white py-5 rounded-xl text-lg font-bold transition-all shadow-xl shadow-primary/20 flex items-center justify-center gap-2 group">
+                    提交申請
+                    <Send size={20} className="group-hover:translate-x-1 transition-transform" />
+                 </button>
+                 <p className="text-center text-slate-500 text-xs mt-6">
+                    提交即代表您同意 XCASH 的節點隱私協議與服務條款
+                 </p>
+              </div>
+
+            </div>
+          </div>
+        );
+      };
+
+      // Staking.tsx
+      const Staking = () => {
+        const NavItem = ({ icon, label, active }) => (
+          <div className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all group ${active ? 'bg-gradient-to-r from-primary/15 to-transparent border-l-4 border-primary' : 'hover:bg-white/5 hover:text-white text-white/60 border-l-4 border-transparent'}`}>
+            <div className={active ? 'text-primary' : 'group-hover:text-white'}>{icon}</div>
+            <span className={`font-medium ${active ? 'text-white' : ''}`}>{label}</span>
+          </div>
+        );
+
+        const MetricCard = ({ title, value, unit, subtext, subtextColor = "text-white/40", icon, color }) => (
+          <div className="glass-panel p-6 rounded-2xl relative overflow-hidden group">
+            <div className={`absolute top-0 right-0 w-32 h-32 bg-${color}/10 -mr-16 -mt-16 rounded-full blur-3xl`}></div>
+            <div className="flex items-center gap-3 mb-4">
+               <div className={`p-2 bg-${color}/20 rounded-lg`}>{icon}</div>
+               <h3 className="text-white/60 text-sm font-bold uppercase tracking-wider">{title}</h3>
+            </div>
+            <div className="flex items-baseline gap-2">
+               <span className={`text-4xl font-black tabular-nums ${color === 'accent-cyan' ? 'text-accent-cyan' : 'text-white'}`}>{value}</span>
+               <span className={`text-${color} font-bold italic`}>{unit}</span>
+            </div>
+            <p className={`text-xs mt-2 ${subtextColor}`}>{subtext}</p>
+          </div>
+        );
+
+        const Badge = ({ text, color }) => (
+          <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${color === 'primary' ? 'bg-primary/10 border border-primary/30 text-primary' : 'bg-white/5 border border-white/10 text-white/40'}`}>
+            {text}
+          </span>
+        );
+
+        return (
+          <div className="flex min-h-screen bg-[#0a0d14] text-white overflow-hidden font-sans">
+            <aside className="w-64 border-r border-white/5 bg-[#192233]/40 backdrop-blur-md flex flex-col h-screen z-20 sticky top-0">
+              <div className="p-6 flex items-center gap-3">
+                <div className="size-8 text-primary">
+                  <Logo />
+                </div>
+                <h2 className="text-white text-xl font-bold tracking-tight">XCASH</h2>
+              </div>
+              
+              <nav className="flex-1 mt-6 px-3 space-y-1">
+                <NavItem icon={<LayoutGrid size={22} />} label="概覽" />
+                <NavItem icon={<Wallet size={22} />} label="質押中心" active />
+                <NavItem icon={<Activity size={22} />} label="節點管理" />
+                <NavItem icon={<Settings size={22} />} label="系統設置" />
+              </nav>
+
+              <div className="p-6 mt-auto">
+                <Link to="/" className="flex items-center gap-3 px-4 py-3 text-white/40 hover:text-white transition-all">
+                  <ArrowLeft size={22} />
+                  <span className="font-medium">返回首頁</span>
+                </Link>
+              </div>
+            </aside>
+
+            <main className="flex-1 h-screen overflow-y-auto relative gradient-mesh">
+              <header className="sticky top-0 z-10 px-8 py-4 bg-[#192233]/40 backdrop-blur-md border-b border-white/5 flex items-center justify-between">
+                <div>
+                  <h1 className="text-xl font-bold italic">質押儀表板 <span className="text-xs font-normal text-white/40 ml-2 uppercase tracking-widest not-italic">Staking Dashboard</span></h1>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="flex flex-col items-end mr-2">
+                    <span className="text-[10px] text-white/40 uppercase font-bold tracking-tighter">錢包狀態</span>
+                    <span className="text-xs text-accent-cyan flex items-center gap-1 font-mono">
+                      <span className="size-1.5 bg-accent-cyan rounded-full"></span> 0x82...3f92
+                    </span>
+                  </div>
+                  <button className="bg-primary/10 border border-primary/40 text-primary p-2 rounded-lg hover:bg-primary/20 transition-colors">
+                    <Bell size={20} />
+                  </button>
+                </div>
+              </header>
+
+              <div className="p-8 max-w-6xl mx-auto space-y-8">
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <MetricCard 
+                    title="總質押 XCASH" 
+                    value="420,000" 
+                    unit="XCASH" 
+                    subtext="≈ $12,450.00 USD"
+                    icon={<Layers className="text-primary" />}
+                    color="primary"
+                  />
+                  <MetricCard 
+                    title="當前年化收益率" 
+                    value="12.85" 
+                    unit="%" 
+                    subtext="+1.2% 較昨日上升"
+                    subtextColor="text-green-400"
+                    icon={<TrendingUp className="text-accent-cyan" />}
+                    color="accent-cyan"
+                  />
+                   <MetricCard 
+                    title="我的已賺取獎勵" 
+                    value="1,245.82" 
+                    unit="XCASH" 
+                    subtext="預計下次結算：4h 12m"
+                    icon={<Sparkles className="text-accent-purple" />}
+                    color="accent-purple"
+                  />
+                </div>
+
+                <div className="grid lg:grid-cols-5 gap-8">
+                  
+                  <div className="lg:col-span-3 space-y-6">
+                    <div className="glass-panel rounded-2xl p-8 border border-white/10">
+                      <div className="flex items-center justify-between mb-8">
+                        <h2 className="text-2xl font-bold italic">質押操作</h2>
+                        <div className="flex gap-2">
+                          <Badge text="網絡活躍" />
+                          <Badge text="高收益" color="primary" />
+                        </div>
+                      </div>
+
+                      <div className="space-y-6">
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-xs font-bold text-white/60 uppercase">
+                            <span>輸入質押數量</span>
+                            <span>餘額: 24,000.00 XCASH</span>
+                          </div>
+                          <div className="relative">
+                            <input 
+                              type="number" 
+                              placeholder="0.00" 
+                              disabled
+                              className="w-full bg-white/5 border border-white/10 rounded-xl py-4 px-4 text-xl font-bold focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all disabled:opacity-50 text-white" 
+                            />
+                            <button className="absolute right-4 top-1/2 -translate-y-1/2 text-primary font-bold text-sm opacity-50 cursor-not-allowed">最大值</button>
+                          </div>
+                        </div>
+                        <button disabled className="w-full py-4 bg-gray-600/20 text-white/30 border border-white/10 rounded-xl font-black text-lg transition-all flex items-center justify-center gap-2 cursor-not-allowed">
+                          <Lock size={20} className="text-white/20" />
+                          確認質押 (主網啟動中)
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="glass-panel rounded-2xl p-8 border border-white/10">
+                      <h3 className="text-lg font-bold italic mb-6">獎勵提取</h3>
+                      <div className="flex flex-col gap-6">
+                        <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5">
+                          <div className="flex items-center gap-4">
+                            <div className="size-12 rounded-full bg-accent-purple/10 flex items-center justify-center text-accent-purple">
+                              <CircleDollarSign />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-white/40 uppercase">可領取餘額</p>
+                              <p className="text-xl font-black">1,245.82 XCASH</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs font-bold text-white/40 uppercase">最小領取額</p>
+                            <p className="text-sm font-bold">2,000 XCASH</p>
+                          </div>
+                        </div>
+                        <button disabled className="w-full py-4 bg-gray-600/20 text-white/40 border border-white/5 rounded-xl font-black text-lg cursor-not-allowed flex items-center justify-center gap-2">
+                           <Lock size={20} />
+                           領取收益 (暫不可用)
+                        </button>
+                        <p className="text-center text-xs text-white/30">您尚未達到最小領取門檻或提取冷卻時間未結束。</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="lg:col-span-2 space-y-6">
+                    <div className="glass-panel rounded-2xl p-6 border border-white/10">
+                      <h3 className="text-lg font-bold italic mb-6">網絡動態</h3>
+                      <div className="space-y-6">
+                         <div className="flex justify-between items-start">
+                            <div className="space-y-1">
+                               <p className="text-xs font-bold text-white/40 uppercase">當前高度</p>
+                               <p className="font-mono text-accent-cyan">#8,492,031</p>
+                            </div>
+                            <div className="text-right space-y-1">
+                               <p className="text-xs font-bold text-white/40 uppercase">平均出塊</p>
+                               <p className="font-mono">1.2s</p>
+                            </div>
+                         </div>
+                         <div className="h-[1px] bg-white/5"></div>
+                         <div className="space-y-4">
+                            <p className="text-xs font-bold text-white/40 uppercase tracking-widest">質押分配</p>
+                            <div className="flex h-2 w-full rounded-full overflow-hidden bg-white/5">
+                               <div className="bg-primary w-[65%]"></div>
+                               <div className="bg-accent-cyan w-[20%]"></div>
+                               <div className="bg-accent-purple w-[15%]"></div>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 text-[10px] font-bold">
+                               <div className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-primary"></span> 節點</div>
+                               <div className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-accent-cyan"></span> 委託</div>
+                               <div className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-accent-purple"></span> 儲備</div>
+                            </div>
+                         </div>
+                      </div>
+                    </div>
+
+                    <div className="glass-panel rounded-2xl p-6 border border-white/10 relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-primary/20 blur-2xl -mr-12 -mt-12"></div>
+                      <h3 className="text-lg font-bold italic mb-4">隱私保護等級</h3>
+                      <div className="flex items-center gap-4 p-4 bg-white/5 rounded-xl">
+                         <div className="text-3xl font-black text-primary">SSS</div>
+                         <div className="h-8 w-[1px] bg-white/10"></div>
+                         <p className="text-xs text-white/60 leading-tight">您的數據正在通過 1.4 萬個全球節點進行混淆處理，安全性極高。</p>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+
+              <div className="fixed bottom-0 right-0 p-12 opacity-5 pointer-events-none select-none z-0">
+                 <h1 className="text-[12rem] font-black italic leading-none">XCASH</h1>
+              </div>
+            </main>
+          </div>
+        );
+      };
+
+      // Tokenomics.tsx
+      const Tokenomics = () => {
+        const data = [
+          { name: 'Community', value: 80, color: '#135bec' },
+          { name: 'Team & Dev', value: 20, color: '#3b82f6' },
+        ];
+
+        const StatBox = ({ title, value, sub, color, isPrice }) => (
+          <div className={`flex flex-col gap-2 rounded-xl bg-background-dark/50 p-6 border border-primary/30 shadow-[0_0_10px_rgba(19,91,236,0.1)]`}>
+            <p className="text-white/50 text-xs font-bold uppercase tracking-widest">{title}</p>
+            <p className="text-white text-2xl font-bold">{value}</p>
+            <div className={`flex items-center gap-1 ${color}`}>
+               {isPrice && <TrendingUp size={14} />}
+               <span className="text-sm font-medium">{sub}</span>
+            </div>
+          </div>
+        );
+
+        const FeatureBox = ({ icon, title, desc }) => (
+          <div className="p-6 rounded-lg bg-background-dark border border-white/5 hover:border-primary/50 transition-all flex flex-col items-center text-center gap-4 hover:-translate-y-1">
+             <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                {icon}
+             </div>
+             <h4 className="font-bold text-white uppercase tracking-widest">{title}</h4>
+             <p className="text-sm text-white/50 leading-relaxed">
+                {desc}
+             </p>
+          </div>
+        );
+
+        return (
+          <div className="px-4 lg:px-40 flex flex-1 justify-center py-5">
+            <div className="flex flex-col max-w-[1200px] flex-1">
+              
+              <div className="flex flex-col items-center text-center mb-12 pt-10">
+                <h1 className="text-white tracking-[0.1em] text-4xl lg:text-6xl font-bold leading-tight px-4 pb-3 uppercase">
+                  XCASH 代幣經濟學
+                </h1>
+                <p className="text-white/60 text-lg max-w-2xl font-normal leading-relaxed px-4">
+                  驅動下一代世界模型隱私保護與全球數據分析。XCASH 採用完全去中心化模型，所有權益回饋社區，構建公平且可持續的價值生態。
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 px-4 mb-12">
+                
+                <div className="flex flex-col gap-6 rounded-xl bg-background-dark/50 border border-primary/30 shadow-[0_0_15px_rgba(19,91,236,0.2)] p-8 relative overflow-hidden">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-white text-xl font-bold flex items-center gap-2">
+                      <IconPieChart className="text-primary" />
+                      代幣持有分配
+                    </h3>
+                    <span className="bg-primary/20 text-primary px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest text-center">
+                      100% 社區化
+                    </span>
+                  </div>
+                  
+                  <div className="flex flex-col items-center justify-center py-6 relative">
+                    <div className="relative w-64 h-64 flex items-center justify-center">
+                       <ResponsiveContainer width="100%" height="100%">
+                          <RePieChart>
+                            <Pie
+                              data={data}
+                              innerRadius={80}
+                              outerRadius={100}
+                              paddingAngle={5}
+                              dataKey="value"
+                              stroke="none"
+                            >
+                              {data.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                              ))}
+                            </Pie>
+                            <ReTooltip 
+                              contentStyle={{ backgroundColor: '#0a0d14', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                              itemStyle={{ color: '#fff' }}
+                            />
+                          </RePieChart>
+                       </ResponsiveContainer>
+                       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                          <p className="text-white/50 text-[10px] font-bold uppercase tracking-tighter">總量固定</p>
+                          <p className="text-white text-3xl font-bold">1B</p>
+                          <p className="text-primary text-[10px] font-bold uppercase">XCASH</p>
+                       </div>
+                    </div>
+                    
+                    <div className="mt-8 w-full text-center p-4 border border-primary/20 bg-primary/5 rounded-lg">
+                      <p className="text-white font-bold text-lg mb-1">100% 由社區持有</p>
+                      <p className="text-white/60 text-sm">無私募、無預留、無團隊分配。所有代幣均通過社區機制產出與循環。</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-4">
+                  <div className="rounded-xl bg-background-dark/50 border border-primary/30 shadow-[0_0_15px_rgba(19,91,236,0.2)] p-8 flex-1">
+                     <h3 className="text-white text-xl font-bold flex items-center gap-2 mb-6">
+                        <DollarSign className="text-primary" />
+                        收益分配模型 (20/80)
+                     </h3>
+                     
+                     <div className="flex flex-col gap-4 md:flex-row items-center mb-8">
+                        <div className="relative size-32">
+                           <svg viewBox="0 0 100 100" className="transform -rotate-90 w-full h-full">
+                              <circle cx="50" cy="50" r="40" stroke="#135bec" strokeWidth="12" fill="none" strokeDasharray="200 251" />
+                              <circle cx="50" cy="50" r="40" stroke="#3b82f6" strokeWidth="12" fill="none" strokeDasharray="51 251" strokeDashoffset="-200" />
+                           </svg>
+                        </div>
+                        
+                        <div className="flex flex-col gap-4 flex-1">
+                           <div className="flex items-start gap-3">
+                              <div className="size-3 rounded-full bg-[#135bec] mt-1"></div>
+                              <div>
+                                 <p className="text-white font-bold text-sm">80% 分配給 XCASH 持有者</p>
+                                 <p className="text-white/50 text-xs">直接回饋社區貢獻者</p>
+                              </div>
+                           </div>
+                           <div className="flex items-start gap-3">
+                              <div className="size-3 rounded-full bg-[#3b82f6] mt-1"></div>
+                              <div>
+                                 <p className="text-white font-bold text-sm">20% 團隊建設維護</p>
+                                 <p className="text-white/50 text-xs">用於核心開發與運營支出</p>
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+
+                     <div className="p-4 rounded-lg bg-white/5 border border-white/10">
+                        <h4 className="text-primary text-xs font-bold uppercase mb-2 flex items-center gap-2">
+                           <TrendingUp size={14} />
+                           節點託管業務收益
+                        </h4>
+                        <p className="text-white/70 text-sm leading-relaxed">
+                           XCASH 提供專業節點託管服務，託管節點收入的 <span className="text-primary font-bold">30%</span> 將直接分配給 XCASH 持有者。
+                        </p>
+                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                     <StatBox title="流通總量" value="1,000,000,000" sub="100% 流通 / 全社區" color="text-[#0bda5e]" />
+                     <StatBox title="當前價格" value="$0.00002" sub="+14.2% (24h)" color="text-[#0bda5e]" isPrice />
+                  </div>
+                </div>
+              </div>
+
+              <div className="px-4 mb-20">
+                <div className="border-t border-white/10 pt-12">
+                   <h2 className="text-center text-white/80 text-sm font-bold tracking-[0.3em] uppercase mb-10">
+                      代幣功能矩陣 & 回饋體系
+                   </h2>
+                   <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                      <FeatureBox icon={<ShieldCheck size={32} />} title="隱私挖礦" desc="回購資金跨鏈投入隱私挖礦，質押 XCASH 以支持零知識證明並獲取挖礦獎勵。" />
+                      <FeatureBox icon={<Wallet size={32} />} title="持有者紅利" desc="系統營收之 80% 通過多樣化機制分配給 XCASH 持有者，與社區共用增長。" />
+                      <FeatureBox icon={<TrendingUp size={32} />} title="節點託管收益" desc="託管節點收入的 30% 分配給 XCASH 持有者，進一步豐富持有者的被動收益來源。" />
+                      <FeatureBox icon={<RefreshCcw size={32} />} title="回購增強" desc="所有交易手續費自動執行回購，將外部價值轉化為 XCASH 生態內的流通動力。" />
+                   </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        );
+      };
+
+      // 5. App Component
+      const App = () => {
+        return (
+          <HashRouter>
+            <Routes>
+              <Route path="/" element={<Layout />}>
+                <Route index element={<Home />} />
+                <Route path="nodes" element={<NodeNetwork />} />
+                <Route path="nodes/apply" element={<NodeApply />} />
+                <Route path="tokenomics" element={<Tokenomics />} />
+              </Route>
+              <Route path="/staking" element={<Staking />} />
+            </Routes>
+          </HashRouter>
+        );
+      };
+
+      // 6. Render
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<App />);
+    </script>
+  </body>
+</html>
